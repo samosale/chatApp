@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0 auto; padding: 0; width:50%; height:90vh; overflow: auto;}
+      #messages li { font-size:28px; color:white; padding: 20px 20px; margin:10px; border-radius: 50px;  background: #4BBBFB;}
+      #messages li:nth-child(odd) { 
+        text-align:right;
+        background: #eee;
+        color:black; }
+        .overlay{
+          position: absolute;
+          top:0px; 
+          left: 0px; 
+          width: 100vw; 
+          height: 100vh;
+          z-index: 200;
+          background: linear-gradient(45deg, rgba(234,100,56, .8), rgba(44,123,109, .8))
+          
+        }
+        .overlay div {
+          position: relative; 
+          top: 20%;
+          text-align: center;
+         
+        }
+        .nicknames{
+          height: 100vh; 
+          background: rgba(2, 5, 3, .8);
+          position: absolute; 
+          top: 0px; 
+          right: 0px; 
+          width: 25%;
+          
+        }
+    </style>
+  </head>
+  <body>
+    <div class="overlay">
+      <div>
+      <h2>Login</h2>
+            <input  autocomplete="off" class="inputLog" placeholder="Enter your Username" name= "inputLogin" required/><br>
+            <button class="log">Login</button>
+      </div>
+    </div>
+    <div class="nicknames">
+      
+    </div>
+    <ul id="messages"></ul>
+    <form action="">
+      <input id="m" autocomplete="off" placeholder="Chat here..." name= "input" required/><button type="submit">Send</button>
+    </form>
+<script src="/socket.io/socket.io.js"></script>
+<script src='https://cdn.firebase.com/js/client/2.2.1/firebase.js'></script>
+<script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+
+<script>
+var socket = io();
+var nf = new Firebase('https://glowing-inferno-663.firebaseio.com/');
+var counter = 0;
+var input = $("#m");
+var logButton = $('.log');
+var logInput = $('.inputLog');
+var overlay = $('.overlay');
+//Firebase initial load 
+
+
+nf.child('messages').limitToLast(10).on("value", function(snapshot) {
+  if(counter === 0){
+ snapshot.forEach(function(val){
+  
+   $('#messages').append('<li>'+val.val().msg+'</li>');
+  
+   $("#messages").scrollTop($("#messages")[0].scrollHeight);
+   
+ })
+  counter++;
+  }
+ 
+}, function (errorObject) {
+  console.log("The read failed: " + errorObject.code);
+})
+ 
+
+
+socket.on('usernames', function(data){
+  
+  console.log(data);
+  
+  
+});
+
+
+
+
+socket.on('newMsgServer', function(data){
+  
+  $('#messages').append('<li>'+data.msg+'</li>');
+  
+$("#messages").scrollTop($("#messages")[0].scrollHeight);
+
+  
+  
+})
+$('form').submit(function(e){
+  e.preventDefault();
+  if(!input.val()) return;
+ 
+  socket.emit('new message', input.val())
+  nf.child('messages').push({msg:input.val(), user:logInput.val()});
+  
+  input.val("");
+  
+  
+});
+
+logButton.on('click', function(){
+  
+  if(!logInput.val()) return;
+  
+  
+  socket.emit('new user', logInput.val(), function(data){
+    
+    if(!data){
+      
+     alert("User already exist!")
+    }else{
+      overlay.hide();
+    }
+    
+    
+  });
+  
+  
+})
+
+</script>
+  </body>
+</html>
+
